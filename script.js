@@ -834,7 +834,7 @@ Answer briefly and clearly, referencing file names if relevant."""
         text=True
     )
     
-    stdout, _ = process.communicate(input=prompt, timeout=180)
+    stdout, _ = process.communicate(input=prompt, timeout=1200)
     
     clean_output = clean_ansi(stdout)
     print(clean_output)
@@ -852,7 +852,7 @@ def ask_simple(question):
         text=True
     )
     
-    stdout, _ = process.communicate(input=question, timeout=180)
+    stdout, _ = process.communicate(input=question, timeout=1200)
     
     clean_output = clean_ansi(stdout)
     print(clean_output)
