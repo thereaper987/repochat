@@ -56,6 +56,11 @@ let pollInterval = null;
 let cellsCompleted = { cell1: false, cell2: false, cell3: false, cell4: false };
 
 // ============================================================
+// CONSTANTS
+// ============================================================
+const EXECUTION_TIMEOUT = 1200; // 20 minutes in seconds
+
+// ============================================================
 // HELPERS
 // ============================================================
 function parseRepoUrl(input) {
@@ -155,13 +160,14 @@ async function stopColabSession() {
 }
 
 // ============================================================
-// CODE EXECUTION
+// CODE EXECUTION - WITH TIMEOUT
 // ============================================================
-async function executeCode(code, cellNo) {
+async function executeCode(code, cellNo, timeout = EXECUTION_TIMEOUT) {
   const data = await apiCall('/exec', {
     sessionId: sessionId,
     code: code,
-    cellNo: cellNo
+    cellNo: cellNo,
+    timeout: timeout  // Send timeout in seconds
   });
   return data;
 }
@@ -175,9 +181,9 @@ async function checkStatus(executionId) {
 }
 
 // ============================================================
-// CELL EXECUTION ENGINE
+// CELL EXECUTION ENGINE - WITH TIMEOUT
 // ============================================================
-async function executeCell(cellId, code, cellNo, params = {}) {
+async function executeCell(cellId, code, cellNo, params = {}, timeout = EXECUTION_TIMEOUT) {
   let finalCode = code;
   if (typeof code === 'function') {
     finalCode = code(params);
@@ -188,7 +194,7 @@ async function executeCell(cellId, code, cellNo, params = {}) {
   setupStatus.textContent = `⏳ Running cell ${cellNo}...`;
   cellOutput.textContent = '⏳ Starting execution...';
   
-  const result = await executeCode(finalCode, cellNo);
+  const result = await executeCode(finalCode, cellNo, timeout);
   
   if (result.status === 'processing') {
     currentExecutionId = result.executionId;
@@ -293,15 +299,15 @@ async function startSetup() {
     consoleLog(`Session created: ${sessionId}`, 'success');
     setupStatus.textContent = '✅ Session ready';
     
-    // Cell 1 - Install Ollama
+    // Cell 1 - Install Ollama (20 min timeout)
     updateStepNum(step1num, 'active');
-    await executeCell('cell1', CELL1, 1);
+    await executeCell('cell1', CELL1, 1, {}, EXECUTION_TIMEOUT);
     cellsCompleted.cell1 = true;
     updateStepNum(step1num, 'done');
     
-    // Cell 2 - Pull model
+    // Cell 2 - Pull model (20 min timeout)
     updateStepNum(step1num, 'active');
-    await executeCell('cell2', CELL2, 2);
+    await executeCell('cell2', CELL2, 2, {}, EXECUTION_TIMEOUT);
     cellsCompleted.cell2 = true;
     updateStepNum(step1num, 'done');
     
@@ -311,21 +317,21 @@ async function startSetup() {
     consoleLog('Waiting for repository confirmation...', 'warn');
     await waitForRepoConfirm();
     
-    // Cell 3 - Clone repo
+    // Cell 3 - Clone repo (20 min timeout)
     updateStepNum(step3num, 'active');
     const repoCloneCode = CELL3.replace(
       'https://github.com/kushalkumarj2006/colab-orchestrator',
       repoUrl
     );
-    await executeCell('cell3', repoCloneCode, 3);
+    await executeCell('cell3', repoCloneCode, 3, {}, EXECUTION_TIMEOUT);
     cellsCompleted.cell3 = true;
     updateStepNum(step3num, 'done');
     
-    // Cell 4 - Index files
+    // Cell 4 - Index files (20 min timeout)
     updateStepNum(step4num, 'active');
     setupStatus.textContent = '⏳ Indexing files...';
     cellStatus.textContent = 'indexing...';
-    await executeCell('cell4', CELL4, 4);
+    await executeCell('cell4', CELL4, 4, {}, EXECUTION_TIMEOUT);
     cellsCompleted.cell4 = true;
     updateStepNum(step4num, 'done');
     
@@ -469,7 +475,7 @@ hamburgerBtn.addEventListener('click', () => {
 startBtn.addEventListener('click', startSetup);
 
 // ============================================================
-// CHAT - With streaming support
+// CHAT - With streaming support and timeout
 // ============================================================
 async function askQuestion(mode) {
   if (!chatEnabled) {
@@ -507,7 +513,7 @@ async function askQuestion(mode) {
   askSimpleBtn.disabled = true;
   
   try {
-    // Build ask code
+    // Build ask code with 20 minute timeout
     const askCode = `
 import json
 import subprocess
@@ -535,16 +541,18 @@ clean_result = clean_ansi(result)
 print(json.dumps({"answer": clean_result}))
 `;
     
-    const result = await executeCode(askCode, 99);
+    // Send with 20 minute timeout (1200 seconds)
+    const result = await executeCode(askCode, 99, EXECUTION_TIMEOUT);
     let answer = '';
     
     if (result.status === 'processing') {
       const execId = result.executionId;
       let done = false;
       let attempts = 0;
+      const maxPollAttempts = 240; // 240 * 5s = 1200s = 20 minutes
       
-      while (!done && attempts < 120) {
-        await sleep(3000);
+      while (!done && attempts < maxPollAttempts) {
+        await sleep(5000); // Poll every 5 seconds
         attempts++;
         try {
           const status = await checkStatus(execId);
@@ -583,7 +591,7 @@ print(json.dumps({"answer": clean_result}))
           if (attempts > 10) throw e;
         }
       }
-      if (!done) throw new Error('Timeout');
+      if (!done) throw new Error('Timeout - question took too long to answer');
     } else if (result.success) {
       try {
         const data = JSON.parse(result.output);
