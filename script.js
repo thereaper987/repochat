@@ -1,7 +1,7 @@
 // ============================================================
 // BACKEND CONFIG - UPDATED FOR NEW SERVER
 // ============================================================
-const BACKEND_URL = 'https://colabbridge-jyba.onrender.com';
+const BACKEND_URL = 'https://tempo-agxk.onrender.com';
 let SECRET_KEY = localStorage.getItem('askrepo_key') || '';
 
 window.key = function(str) {
