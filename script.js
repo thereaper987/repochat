@@ -1,8 +1,8 @@
 // ============================================================
-// BACKEND CONFIG - UPDATED FOR NEW SERVER
+// BACKEND CONFIG - UPDATED FOR NEW BACKEND URL
 // ============================================================
 const BACKEND_URL = 'https://tempo-agxk.onrender.com';
-let SECRET_KEY = localStorage.getItem('askrepo_key');
+let SECRET_KEY = localStorage.getItem('askrepo_key') || '';
 
 window.key = function(str) {
   if (str && str.trim()) {
@@ -89,7 +89,7 @@ function consoleLog(msg, type = 'info') {
 }
 
 // ============================================================
-// BACKEND API - UPDATED FOR NEW SERVER
+// BACKEND API - UPDATED FOR NEW BACKEND
 // ============================================================
 async function apiCall(endpoint, body = {}, method = 'POST') {
   const headers = { 'Content-Type': 'application/json' };
@@ -114,7 +114,7 @@ async function apiCall(endpoint, body = {}, method = 'POST') {
 }
 
 // ============================================================
-// SESSION - UPDATED: Use /new instead of /start
+// SESSION MANAGEMENT
 // ============================================================
 async function startSession() {
   const data = await apiCall('/new', {});
@@ -155,7 +155,7 @@ async function stopColabSession() {
 }
 
 // ============================================================
-// CODE EXECUTION - UPDATED: Proper body format
+// CODE EXECUTION
 // ============================================================
 async function executeCode(code, cellNo) {
   const data = await apiCall('/exec', {
@@ -175,7 +175,7 @@ async function checkStatus(executionId) {
 }
 
 // ============================================================
-// CELL EXECUTION ENGINE - UPDATED: Better polling
+// CELL EXECUTION ENGINE
 // ============================================================
 async function executeCell(cellId, code, cellNo, params = {}) {
   let finalCode = code;
@@ -254,7 +254,7 @@ async function executeCell(cellId, code, cellNo, params = {}) {
           clearInterval(pollInterval);
           reject(err);
         }
-      }, 5000); // Poll every 5 seconds (shorter than before)
+      }, 5000); // Poll every 5 seconds
     });
   } else if (result.success) {
     cellOutput.textContent = result.output || '✅ Completed';
@@ -266,7 +266,7 @@ async function executeCell(cellId, code, cellNo, params = {}) {
 }
 
 // ============================================================
-// MAIN SETUP - UPDATED: Better error handling
+// MAIN SETUP
 // ============================================================
 async function startSetup() {
   if (!SECRET_KEY) {
@@ -469,7 +469,7 @@ hamburgerBtn.addEventListener('click', () => {
 startBtn.addEventListener('click', startSetup);
 
 // ============================================================
-// CHAT - UPDATED: Better streaming and error handling
+// CHAT - With streaming support
 // ============================================================
 async function askQuestion(mode) {
   if (!chatEnabled) {
@@ -507,7 +507,7 @@ async function askQuestion(mode) {
   askSimpleBtn.disabled = true;
   
   try {
-    // Build ask code for the new backend
+    // Build ask code
     const askCode = `
 import json
 import subprocess
@@ -620,10 +620,10 @@ questionInput.addEventListener('keydown', (e) => {
 });
 
 // ============================================================
-// WAKE UP - UPDATED: Health check for new server
+// WAKE UP - UPDATED for new backend URL
 // ============================================================
 function wakeUp(attempt = 1) {
-  fetch('https://colabbridge-jyba.onrender.com/health')
+  fetch('https://tempo-agxk.onrender.com/health')
     .then(res => res.ok ? res.json() : Promise.reject('Not ready'))
     .then(data => {
       console.log('✅ Server ready:', data.status);
